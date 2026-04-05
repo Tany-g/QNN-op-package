@@ -1,6 +1,7 @@
 //==============================================================================
 // Auto Generated Code for MyScaleOpPackage
 //==============================================================================
+#include <cstring>
 #include <iostream>
 #include <string>
 
@@ -13,40 +14,80 @@ using namespace qnn::custom::utils;
 namespace myscale {
 
 Qnn_ErrorHandle_t execute(CustomOp* operation) {
+  QNN_CUSTOM_BE_ENSURE(operation != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+  QNN_CUSTOM_BE_ENSURE_EQ(operation->numInput(), 1, QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+  QNN_CUSTOM_BE_ENSURE_EQ(operation->numOutput(), 1, QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
 
-  /**
-   * Add code here
-   **/
-  /*
-   * To have good performance and stability, it is required to avoid heap memory
-   * allocation in this function. The heap memory allocation includes but not
-   * limited to calling malloc, operator new, constructing STL container objects
-   * like std::vector with default allocator, and adding items like calling
-   * std::vector::push_back to STL container objects with default allocator.
-   *
-   * Please check in SDK documentation for more information.
-   */
+  // 取输入/输出 tensor
+  auto inTensor  = reinterpret_cast<QnnCpuOpPackage_Tensor_t*>(operation->getInput(0));
+  auto outTensor = reinterpret_cast<QnnCpuOpPackage_Tensor_t*>(operation->getOutput(0));
+
+  QNN_CUSTOM_BE_ENSURE(inTensor != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+  QNN_CUSTOM_BE_ENSURE(outTensor != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+
+  // 这里只做最小单测，所以强制要求 float32
+  QNN_CUSTOM_BE_ENSURE_EQ(inTensor->dataType, QNN_CPU_DATATYPE_FLOAT_32,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+  QNN_CUSTOM_BE_ENSURE_EQ(outTensor->dataType, QNN_CPU_DATATYPE_FLOAT_32,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+
+  // 输入输出元素个数必须一致
+  const uint32_t numElems = numTensorSize(operation->getInput(0));
+  QNN_CUSTOM_BE_ENSURE_EQ(numTensorSize(operation->getOutput(0)), numElems,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+
+  const float* input = reinterpret_cast<const float*>(inTensor->data);
+  float* output      = reinterpret_cast<float*>(outTensor->data);
+
+  QNN_CUSTOM_BE_ENSURE(input != nullptr,  QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+  QNN_CUSTOM_BE_ENSURE(output != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+
+  auto alphaParam = operation->getParam("alpha");
+  QNN_CUSTOM_BE_ENSURE(alphaParam != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+
+  auto cpuAlphaParam = reinterpret_cast<QnnCpuOpPackage_Param_t*>(alphaParam);
+  QNN_CUSTOM_BE_ENSURE_EQ(cpuAlphaParam->type, QNN_CPU_PARAMTYPE_SCALAR,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+
+  const float alpha = static_cast<float>(backend_utils::getScalarParam(alphaParam));
+
+  // 核心计算：output = input * alpha
+  for (uint32_t i = 0; i < numElems; ++i) {
+    output[i] = input[i] * alpha;
+  }
 
   return QNN_SUCCESS;
 }
 
 Qnn_ErrorHandle_t finalize(const CustomOp* operation) {
-  QNN_CUSTOM_BE_ENSURE_EQ(operation->numInput(), 1, QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE)
-  QNN_CUSTOM_BE_ENSURE_EQ(operation->numOutput(), 1, QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE)
+  QNN_CUSTOM_BE_ENSURE(operation != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+  QNN_CUSTOM_BE_ENSURE_EQ(operation->numInput(), 1, QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+  QNN_CUSTOM_BE_ENSURE_EQ(operation->numOutput(), 1, QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
 
-  /**
-   * Add code here
-   **/
+  auto inTensor  = reinterpret_cast<QnnCpuOpPackage_Tensor_t*>(operation->getInput(0));
+  auto outTensor = reinterpret_cast<QnnCpuOpPackage_Tensor_t*>(operation->getOutput(0));
+
+  QNN_CUSTOM_BE_ENSURE(inTensor != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+  QNN_CUSTOM_BE_ENSURE(outTensor != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+
+  // 最小例子：输入输出都要求 float32
+  QNN_CUSTOM_BE_ENSURE_EQ(inTensor->dataType, QNN_CPU_DATATYPE_FLOAT_32,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+  QNN_CUSTOM_BE_ENSURE_EQ(outTensor->dataType, QNN_CPU_DATATYPE_FLOAT_32,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
+
+  auto alphaParam = const_cast<CustomOp*>(operation)->getParam("alpha");
+  QNN_CUSTOM_BE_ENSURE(alphaParam != nullptr, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT);
+
+  auto cpuAlphaParam = reinterpret_cast<QnnCpuOpPackage_Param_t*>(alphaParam);
+  QNN_CUSTOM_BE_ENSURE_EQ(cpuAlphaParam->type, QNN_CPU_PARAMTYPE_SCALAR,
+                          QNN_OP_PACKAGE_ERROR_VALIDATION_FAILURE);
 
   return QNN_SUCCESS;
 }
 
 Qnn_ErrorHandle_t free(CustomOp& operation) {
-
-  /**
-   * Add code here
-   **/
-
+  (void)operation;
   return QNN_SUCCESS;
 }
 
@@ -64,14 +105,9 @@ Qnn_ErrorHandle_t populateFromNode(const QnnOpPackage_Node_t node,
   }
 
   // Add params
-   // The getParam function returns a pair -> hasParam, paramValue
-   // Check that parameter has be retrieved. Pair.first is false if it was not found and the paramValue is nullptr
-
-   auto alphaPair = getParam(node, "alpha");
-
-   QNN_CUSTOM_BE_ENSURE(alphaPair.first, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT)
-   operation->addParam("alpha", alphaPair.second);
-
+  auto alphaPair = getParam(node, "alpha");
+  QNN_CUSTOM_BE_ENSURE(alphaPair.first, QNN_OP_PACKAGE_ERROR_INVALID_ARGUMENT)
+  operation->addParam("alpha", alphaPair.second);
 
   return QNN_SUCCESS;
 }
@@ -85,11 +121,13 @@ Qnn_ErrorHandle_t validateOpConfig(Qnn_OpConfig_t opConfig) {
 
   return QNN_SUCCESS;
 }
+
 }  // namespace myscale
 
 CustomOpRegistration_t* register_MyscaleCustomOp() {
   using namespace myscale;
-  static CustomOpRegistration_t MyscaleRegister = {execute, finalize, free, validateOpConfig, populateFromNode};
+  static CustomOpRegistration_t MyscaleRegister = {
+      execute, finalize, free, validateOpConfig, populateFromNode};
   return &MyscaleRegister;
 }
 
