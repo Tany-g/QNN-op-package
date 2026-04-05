@@ -1,0 +1,50 @@
+<OpDefCollection PackageName="MyScaleOpPackage" Domain="my.custom" Version="1.0">
+
+  <OpDefList>
+    <OpDef>
+      <Name>MyScale</Name>
+        
+
+      <Description>
+        <Content>Multiply input tensor by scalar alpha</Content>
+      </Description>
+
+      <Reference Source="ONNX" Url="custom://my.custom/MyScale"></Reference>
+
+      <Input>
+        <Name>input</Name>
+        <Mandatory>true</Mandatory>
+        <Datatype>QNN_DATATYPE_FLOAT_32</Datatype>
+        <Shape>
+          <Rank>ND</Rank>
+          <Layout>UNDEFINED</Layout>
+        </Shape>
+      </Input>
+
+      <Output>
+        <Name>output</Name>
+        <Mandatory>true</Mandatory>
+        <Datatype>QNN_DATATYPE_FLOAT_32</Datatype>
+        <Shape>
+          <Rank>ND</Rank>
+          <Layout>UNDEFINED</Layout>
+        </Shape>
+      </Output>
+
+      <Parameter>
+        <Name>alpha</Name>
+        <Mandatory>true</Mandatory>
+        <Datatype>QNN_DATATYPE_FLOAT_32</Datatype>
+        <Shape>
+          <Rank>SCALAR</Rank>
+          <Layout>UNDEFINED</Layout>
+        </Shape>
+        <Default>1.0</Default>
+      </Parameter>
+
+      <UseDefaultTranslation>false</UseDefaultTranslation>
+      <SupportedBackend>CPU</SupportedBackend>
+    </OpDef>
+  </OpDefList>
+
+</OpDefCollection>
